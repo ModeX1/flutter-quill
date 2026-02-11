@@ -141,6 +141,7 @@ class QuillEditor extends StatefulWidget {
   QuillEditor({
     required this.focusNode,
     required this.scrollController,
+    this.topChild,
     required this.controller,
     this.config = const QuillEditorConfig(),
     super.key,
@@ -157,12 +158,14 @@ class QuillEditor extends StatefulWidget {
     QuillEditorConfig config = const QuillEditorConfig(),
     FocusNode? focusNode,
     ScrollController? scrollController,
+    Widget? topChild,
   }) {
     return QuillEditor(
       key: key,
       scrollController: scrollController ?? ScrollController(),
       focusNode: focusNode ?? FocusNode(),
       controller: controller,
+      topChild: topChild,
       config: config,
     );
   }
@@ -176,6 +179,8 @@ class QuillEditor extends StatefulWidget {
 
   /// Controls whether this editor has keyboard focus.
   final FocusNode focusNode;
+
+  final Widget? topChild;
 
   /// The [ScrollController] to use when vertically scrolling the contents.
   final ScrollController scrollController;
@@ -263,6 +268,7 @@ class QuillEditorState extends State<QuillEditor>
     final child = QuillRawEditor(
       key: _editorKey,
       controller: controller,
+      topChild: widget.topChild,
       dragOffsetNotifier: dragOffsetNotifier,
       config: QuillRawEditorConfig(
         characterShortcutEvents: widget.config.characterShortcutEvents,

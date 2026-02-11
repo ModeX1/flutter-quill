@@ -8,7 +8,9 @@ import 'config/raw_editor_config.dart';
 import 'raw_editor_state.dart';
 
 class QuillRawEditor extends StatefulWidget {
+  final Widget? topChild;
   QuillRawEditor({
+    this.topChild,
     required this.config,
     required this.controller,
     this.dragOffsetNotifier,
