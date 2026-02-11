@@ -54,6 +54,10 @@ class QuillRawEditorState extends EditorState
   StreamSubscription<bool>? _keyboardVisibilitySubscription;
   bool _keyboardVisible = false;
 
+  /// Tracks the last known bottom view inset (keyboard height) to compute
+  /// the delta when the keyboard appears or resizes.
+  double _lastBottomViewInset = 0;
+
   // Selection overlay
   @override
   EditorTextSelectionOverlay? get selectionOverlay => _selectionOverlay;
@@ -911,6 +915,33 @@ class QuillRawEditorState extends EditorState
     _requestAutoFocusIfShould();
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _handleKeyboardHeightChange();
+    });
+  }
+
+  void _handleKeyboardHeightChange() {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final delta = bottomInset - _lastBottomViewInset;
+    _lastBottomViewInset = bottomInset;
+
+    if (delta > 0 && _scrollController.hasClients) {
+      _scrollController.animateTo(
+        math.min(
+          _scrollController.offset + delta,
+          _scrollController.position.maxScrollExtent,
+        ),
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.fastOutSlowIn,
+      );
+    }
+  }
+
   Future<void> _requestAutoFocusIfShould() async {
     final focusManager = FocusScope.of(context);
     if (!_didAutoFocus && widget.config.autoFocus) {
@@ -1112,6 +1143,7 @@ class QuillRawEditorState extends EditorState
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       WidgetsBinding.instance.addObserver(this);
+      _lastBottomViewInset = MediaQuery.of(context).viewInsets.bottom;
       _showCaretOnScreen();
     } else {
       WidgetsBinding.instance.removeObserver(this);
