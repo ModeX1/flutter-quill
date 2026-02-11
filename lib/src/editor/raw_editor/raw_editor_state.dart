@@ -164,11 +164,32 @@ class QuillRawEditorState extends EditorState
     }
   }
 
+  /// Select the word at the current cursor position,
+  /// as in the "Select" edit menu button on iOS.
+  ///
+  /// Only works when the selection is collapsed (cursor with no selection).
+  void selectWordAtCursor(SelectionChangedCause cause) {
+    final selection = textEditingValue.selection;
+    if (!selection.isValid || !selection.isCollapsed) return;
+
+    final wordSelection = renderEditor.selectWordAtPosition(selection.base);
+    if (wordSelection.isCollapsed) return;
+
+    userUpdateTextEditingValue(
+      textEditingValue.copyWith(selection: wordSelection),
+      cause,
+    );
+
+    if (cause == SelectionChangedCause.toolbar) {
+      bringIntoView(textEditingValue.selection.extent);
+    }
+  }
+
   /// Returns the [ContextMenuButtonItem]s representing the buttons in this
   /// platform's default selection menu for [QuillRawEditor].
   /// Copied from [EditableTextState].
   List<ContextMenuButtonItem> get contextMenuButtonItems {
-    return EditableText.getEditableButtonItems(
+    final items = EditableText.getEditableButtonItems(
       clipboardStatus:
           (_clipboardStatus != null) ? _clipboardStatus!.value : null,
       onCopy: copyEnabled
@@ -192,6 +213,25 @@ class QuillRawEditorState extends EditorState
           : null,
       onLiveTextInput: liveTextInputEnabled ? () {} : null,
     );
+
+    // On iOS, add a "Select" option when the selection is collapsed so the
+    // user can select the word at the cursor position — matching native iOS
+    // context menu behaviour.
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        widget.config.contextMenuBuilder != null &&
+        textEditingValue.selection.isValid &&
+        textEditingValue.selection.isCollapsed) {
+      items.insert(
+        0,
+        ContextMenuButtonItem(
+          label: 'Select',
+          onPressed: () => selectWordAtCursor(SelectionChangedCause.toolbar),
+          type: ContextMenuButtonType.custom,
+        ),
+      );
+    }
+
+    return items;
   }
 
   /// Look up the current selection,
