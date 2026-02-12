@@ -85,11 +85,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   bool shouldShowSelectionToolbar = true;
   PointerDeviceKind? kind;
 
-  /// Tracks whether the current gesture sequence started within the
-  /// [RenderEditor] bounds. This is used to ignore gestures that originate
-  /// in the [topChild] area above the editor.
-  bool _gestureStartedInEditor = false;
-
   /// Check if the selection toolbar should show.
   ///
   /// If mouse is used, the toolbar should only show when right click.
@@ -113,17 +108,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   @protected
   RenderEditor? get renderEditor => editor?.renderEditor;
 
-  /// Returns true if the given [globalPosition] is within the
-  /// [RenderEditor] bounds. Used to filter out gestures that land in the
-  /// [topChild] area above the editor.
-  bool _isPositionInEditor(Offset globalPosition) {
-    final re = renderEditor;
-    if (re == null) return false;
-    final editorOrigin = re.localToGlobal(Offset.zero);
-    final editorRect = editorOrigin & re.size;
-    return editorRect.contains(globalPosition);
-  }
-
   /// Handler for [EditorTextSelectionGestureDetector.onTapDown].
   ///
   /// By default, it forwards the tap to [RenderEditable.handleTapDown] and sets
@@ -136,9 +120,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onTapDown(TapDownDetails details) {
-    _gestureStartedInEditor = _isPositionInEditor(details.globalPosition);
-    if (!_gestureStartedInEditor) return;
-
     renderEditor!.handleTapDown(details);
     // The selection overlay should only be shown when the user is interacting
     // through a touch screen (via either a finger or a stylus).
@@ -167,9 +148,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   @protected
   void onForcePressStart(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
-    _gestureStartedInEditor = _isPositionInEditor(details.globalPosition);
-    if (!_gestureStartedInEditor) return;
-
     shouldShowSelectionToolbar = true;
     if (delegate.selectionEnabled) {
       renderEditor!.selectWordsInRange(
@@ -194,8 +172,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   @protected
   void onForcePressEnd(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
-    if (!_gestureStartedInEditor) return;
-
     renderEditor!.selectWordsInRange(
       details.globalPosition,
       null,
@@ -216,8 +192,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///    this callback.
   @protected
   void onSingleTapUp(TapUpDetails details) {
-    if (!_gestureStartedInEditor) return;
-
     if (delegate.selectionEnabled) {
       renderEditor!.selectWordEdge(SelectionChangedCause.tap);
     }
@@ -226,8 +200,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   /// onSingleTapUp for mouse right click
   @protected
   void onSecondarySingleTapUp(TapUpDetails details) {
-    if (!_gestureStartedInEditor) return;
-
     SchedulerBinding.instance.addPostFrameCallback((_) {
       // added to show toolbar by right click
       if (checkSelectionToolbarShouldShow(isAdditionalAction: true)) {
@@ -261,9 +233,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
-    _gestureStartedInEditor = _isPositionInEditor(details.globalPosition);
-    if (!_gestureStartedInEditor) return;
-
     if (delegate.selectionEnabled) {
       renderEditor!.selectPositionAt(
         from: details.globalPosition,
@@ -283,8 +252,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///    triggers this callback.
   @protected
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
-    if (!_gestureStartedInEditor) return;
-
     if (delegate.selectionEnabled) {
       renderEditor!.selectPositionAt(
         from: details.globalPosition,
@@ -303,8 +270,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
-    if (!_gestureStartedInEditor) return;
-
     if (checkSelectionToolbarShouldShow(isAdditionalAction: false)) {
       editor!.showToolbar();
     }
@@ -321,8 +286,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onDoubleTapDown(TapDownDetails details) {
-    if (!_isPositionInEditor(details.globalPosition)) return;
-
     if (delegate.selectionEnabled) {
       renderEditor!.selectWord(SelectionChangedCause.tap);
       // allow the selection to get updated before trying to bring up
@@ -349,9 +312,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onDragSelectionStart(DragStartDetails details) {
-    _gestureStartedInEditor = _isPositionInEditor(details.globalPosition);
-    if (!_gestureStartedInEditor) return;
-
     renderEditor!.handleDragStart(details);
   }
 
@@ -368,8 +328,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   void onDragSelectionUpdate(
       //DragStartDetails startDetails,
       DragUpdateDetails updateDetails) {
-    if (!_gestureStartedInEditor) return;
-
     renderEditor!.extendSelection(
       updateDetails.globalPosition,
       cause: SelectionChangedCause.drag,
@@ -386,8 +344,6 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  which triggers this callback.
   @protected
   void onDragSelectionEnd(DragEndDetails details) {
-    if (!_gestureStartedInEditor) return;
-
     renderEditor!.handleDragEnd(details);
     if (isDesktop &&
         delegate.selectionEnabled &&
