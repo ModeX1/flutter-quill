@@ -228,7 +228,7 @@ class QuillRawEditorState extends EditorState
       items.insert(
         0,
         ContextMenuButtonItem(
-          label: 'Select',
+          label: '선택',
           onPressed: () => selectWordAtCursor(SelectionChangedCause.toolbar),
           type: ContextMenuButtonType.custom,
         ),
